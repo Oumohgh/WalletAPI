@@ -1,0 +1,598 @@
+
+CONTRAT D’API
+
+
+Réponses JSON attendues
+API REST – Wallet en ligne sécurisée
+
+Ce document définit la structure exacte des réponses JSON
+que l’API doit retourner pour chaque endpoint.
+Le frontend fourni consomme ces réponses — respectez cette spécification.
+
+Projet WalletAPI —GenV  — Formateur Tayeb SOUINI, Développeur full stack Java & Angular 2+
+
+STRUCTURE STANDARD DES RÉPONSES JSON
+Toutes les réponses de l’API doivent suivre une structure enveloppe (wrapper) uniforme pour faciliter le traitement côté frontend. Voici les deux formats standard :
+Réponse de succès :
+{
+"success": true,
+"message": "Description de l'opération réussie",
+"data": { ... }
+}
+
+Réponse d’erreur :
+{
+"success": false,
+"message": "Description de l'erreur",
+"errors": { ... }
+}
+
+
+⚠️ Convention obligatoire
+Chaque réponse DOIT contenir les clés "success" (bool) et "message" (string). La clé "data" est présente en cas de succès, la clé "errors" en cas d’erreur de validation (422). Le frontend s’appuie sur "success" pour déterminer le traitement à effectuer.
+
+
+MODULE AUTHENTIFICATION
+POST /api/register  —  Inscription d’un nouvel utilisateur
+Headers requis :
+Accept: application/json
+Content-Type: application/json
+
+Body de la requête :
+{
+"name": "Youssef Amrani",
+"email": "youssef@example.com",
+"password": "SecureP@ss123",
+"password_confirmation": "SecureP@ss123"
+}
+
+Status: 201 Created
+{
+"success": true,
+"message": "Inscription réussie.",
+"data": {
+"user": {
+"id": 1,
+"name": "Youssef Amrani",
+"email": "youssef@example.com",
+"created_at": "2026-03-10T09:00:00.000000Z",
+"updated_at": "2026-03-10T09:00:00.000000Z"
+},
+"token": "1|abc123def456ghi789jkl012mno345pqr678stu901"
+}
+}
+
+Status: 422 Unprocessable Entity
+{
+"success": false,
+"message": "Erreur de validation.",
+"errors": {
+"email": ["L'adresse email est déjà utilisée."],
+"password": [
+"Le mot de passe doit contenir au moins 8 caractères."
+]
+}
+}
+
+POST /api/login  —  Connexion et obtention du token
+Body de la requête :
+{
+"email": "youssef@example.com",
+"password": "SecureP@ss123"
+}
+
+Status: 200 OK
+{
+"success": true,
+"message": "Connexion réussie.",
+"data": {
+"user": {
+"id": 1,
+"name": "Youssef Amrani",
+"email": "youssef@example.com",
+"created_at": "2026-03-10T09:00:00.000000Z",
+"updated_at": "2026-03-10T09:00:00.000000Z"
+},
+"token": "2|xyz987wvu654tsr321qpo098nml765kji432hgf109"
+}
+}
+
+Status: 401 Unauthorized
+{
+"success": false,
+"message": "Identifiants incorrects."
+}
+
+POST /api/logout  —  Déconnexion (révocation du token)
+Headers requis :
+Accept: application/json
+Authorization: Bearer 2|xyz987wvu654tsr321qpo098nml765kji432hgf109
+
+Status: 200 OK
+{
+"success": true,
+"message": "Déconnexion réussie."
+}
+
+Status: 401 Unauthorized
+{
+"success": false,
+"message": "Non authentifié."
+}
+
+GET /api/user  —  Profil de l’utilisateur connecté
+Headers requis :
+Accept: application/json
+Authorization: Bearer {token}
+
+Status: 200 OK
+{
+"success": true,
+"message": "Profil utilisateur récupéré.",
+"data": {
+"user": {
+"id": 1,
+"name": "Youssef Amrani",
+"email": "youssef@example.com",
+"created_at": "2026-03-10T09:00:00.000000Z",
+"updated_at": "2026-03-10T09:00:00.000000Z"
+}
+}
+}
+
+
+MODULE WALLET
+🔒 Authentification requise
+Tous les endpoints de ce module nécessitent le header Authorization: Bearer {token}. En cas de token manquant ou invalide, l’API retourne systématiquement une erreur 401.
+
+POST /api/wallets  —  Créer un nouveau wallet
+Body de la requête :
+{
+"name": "Wallet Principal",
+"currency": "MAD"
+}
+
+Devises acceptées : MAD, EUR, USD
+Status: 201 Created
+{
+"success": true,
+"message": "Wallet créé avec succès.",
+"data": {
+"wallet": {
+"id": 1,
+"user_id": 1,
+"name": "Wallet Principal",
+"currency": "MAD",
+"balance": "0.00",
+"created_at": "2026-03-10T09:15:00.000000Z",
+"updated_at": "2026-03-10T09:15:00.000000Z"
+}
+}
+}
+
+Status: 422 Unprocessable Entity
+{
+"success": false,
+"message": "Erreur de validation.",
+"errors": {
+"name": ["Le nom du wallet est obligatoire."],
+"currency": ["La devise sélectionnée n'est pas valide."]
+}
+}
+
+GET /api/wallets  —  Lister les wallets de l’utilisateur
+Status: 200 OK
+{
+"success": true,
+"message": "Liste des wallets récupérée.",
+"data": {
+"wallets": [
+{
+"id": 1,
+"user_id": 1,
+"name": "Wallet Principal",
+"currency": "MAD",
+"balance": "1500.00",
+"created_at": "2026-03-10T09:15:00.000000Z",
+"updated_at": "2026-03-10T10:30:00.000000Z"
+},
+{
+"id": 2,
+"user_id": 1,
+"name": "Wallet Euro",
+"currency": "EUR",
+"balance": "250.50",
+"created_at": "2026-03-10T09:20:00.000000Z",
+"updated_at": "2026-03-10T11:00:00.000000Z"
+}
+]
+}
+}
+
+GET /api/wallets/{id}  —  Détail d’un wallet
+Status: 200 OK
+{
+"success": true,
+"message": "Détail du wallet récupéré.",
+"data": {
+"wallet": {
+"id": 1,
+"user_id": 1,
+"name": "Wallet Principal",
+"currency": "MAD",
+"balance": "1500.00",
+"created_at": "2026-03-10T09:15:00.000000Z",
+"updated_at": "2026-03-10T10:30:00.000000Z"
+}
+}
+}
+
+Status: 403 Forbidden
+{
+"success": false,
+"message": "Vous n'êtes pas autorisé à accéder à ce wallet."
+}
+
+Status: 404 Not Found
+{
+"success": false,
+"message": "Wallet introuvable."
+}
+
+
+MODULE TRANSACTIONS
+POST /api/wallets/{id}/deposit  —  Déposer de l’argent
+Body de la requête :
+{
+"amount": 500.00,
+"description": "Dépôt initial"
+}
+
+Status: 200 OK
+{
+"success": true,
+"message": "Dépôt effectué avec succès.",
+"data": {
+"transaction": {
+"id": 1,
+"wallet_id": 1,
+"type": "deposit",
+"amount": "500.00",
+"description": "Dépôt initial",
+"balance_after": "2000.00",
+"created_at": "2026-03-10T11:00:00.000000Z"
+},
+"wallet": {
+"id": 1,
+"name": "Wallet Principal",
+"currency": "MAD",
+"balance": "2000.00"
+}
+}
+}
+
+Status: 422 Unprocessable Entity
+{
+"success": false,
+"message": "Erreur de validation.",
+"errors": {
+"amount": ["Le montant doit être supérieur à 0."]
+}
+}
+
+POST /api/wallets/{id}/withdraw  —  Retirer de l’argent
+Body de la requête :
+{
+"amount": 200.00,
+"description": "Retrait DAB"
+}
+
+Status: 200 OK
+{
+"success": true,
+"message": "Retrait effectué avec succès.",
+"data": {
+"transaction": {
+"id": 2,
+"wallet_id": 1,
+"type": "withdraw",
+"amount": "200.00",
+"description": "Retrait DAB",
+"balance_after": "1800.00",
+"created_at": "2026-03-10T11:30:00.000000Z"
+},
+"wallet": {
+"id": 1,
+"name": "Wallet Principal",
+"currency": "MAD",
+"balance": "1800.00"
+}
+}
+}
+
+Status: 400 Bad Request
+{
+"success": false,
+"message": "Solde insuffisant. Solde actuel : 100.00 MAD."
+}
+
+
+POST /api/wallets/{id}/transfer  —  Transférer vers un autre wallet
+Body de la requête :
+{
+"receiver_wallet_id": 3,
+"amount": 100.00,
+"description": "Remboursement déjeuner"
+}
+
+Status: 200 OK
+{
+"success": true,
+"message": "Transfert effectué avec succès.",
+"data": {
+"transaction_out": {
+"id": 3,
+"wallet_id": 1,
+"type": "transfer_out",
+"amount": "100.00",
+"description": "Remboursement déjeuner",
+"receiver_wallet_id": 3,
+"balance_after": "1700.00",
+"created_at": "2026-03-10T12:00:00.000000Z"
+},
+"transaction_in": {
+"id": 4,
+"wallet_id": 3,
+"type": "transfer_in",
+"amount": "100.00",
+"description": "Remboursement déjeuner",
+"sender_wallet_id": 1,
+"balance_after": "350.00",
+"created_at": "2026-03-10T12:00:00.000000Z"
+},
+"wallet": {
+"id": 1,
+"name": "Wallet Principal",
+"currency": "MAD",
+"balance": "1700.00"
+}
+}
+}
+
+Status: 400 Bad Request – Solde insuffisant
+{
+"success": false,
+"message": "Solde insuffisant. Solde actuel : 50.00 MAD."
+}
+
+Status: 400 Bad Request – Devise incompatible
+{
+"success": false,
+"message": "Transfert impossible : les deux wallets doivent avoir la même devise."
+}
+
+Status: 422 Unprocessable Entity
+{
+"success": false,
+"message": "Erreur de validation.",
+"errors": {
+"receiver_wallet_id": ["Le wallet destinataire est obligatoire."],
+"amount": ["Le montant doit être supérieur à 0."]
+}
+}
+
+Status: 404 Not Found
+{
+"success": false,
+"message": "Le wallet destinataire est introuvable."
+}
+
+GET /api/wallets/{id}/transactions  —  Historique des transactions
+Paramètres query optionnels : ?page=1&per_page=15
+Status: 200 OK
+{
+"success": true,
+"message": "Historique des transactions récupéré.",
+"data": {
+"transactions": [
+{
+"id": 4,
+"wallet_id": 1,
+"type": "transfer_out",
+"amount": "100.00",
+"description": "Remboursement déjeuner",
+"receiver_wallet_id": 3,
+"sender_wallet_id": null,
+"balance_after": "1700.00",
+"created_at": "2026-03-10T12:00:00.000000Z"
+},
+{
+"id": 2,
+"wallet_id": 1,
+"type": "withdraw",
+"amount": "200.00",
+"description": "Retrait DAB",
+"receiver_wallet_id": null,
+"sender_wallet_id": null,
+"balance_after": "1800.00",
+"created_at": "2026-03-10T11:30:00.000000Z"
+},
+{
+"id": 1,
+"wallet_id": 1,
+"type": "deposit",
+"amount": "500.00",
+"description": "Dépôt initial",
+"receiver_wallet_id": null,
+"sender_wallet_id": null,
+"balance_after": "2000.00",
+"created_at": "2026-03-10T11:00:00.000000Z"
+}
+],
+"pagination": {
+"current_page": 1,
+"last_page": 1,
+"per_page": 15,
+"total": 3
+}
+}
+}
+
+
+ERREURS GLOBALES (TOUTES LES ROUTES)
+Ces réponses peuvent survenir sur n’importe quel endpoint protégé :
+Status: 401 Unauthorized – Token manquant ou invalide
+{
+"success": false,
+"message": "Non authentifié."
+}
+
+Status: 403 Forbidden – Accès refusé
+{
+"success": false,
+"message": "Vous n'êtes pas autorisé à effectuer cette action."
+}
+
+Status: 404 Not Found – Ressource inexistante
+{
+"success": false,
+"message": "Ressource introuvable."
+}
+
+Status: 500 Internal Server Error
+{
+"success": false,
+"message": "Une erreur interne est survenue. Veuillez réessayer."
+}
+
+
+RÉCAPITATIF – TYPES DE TRANSACTIONS
+Type
+Description
+Champs spécifiques
+deposit
+Dépôt d’argent sur le wallet
+—
+withdraw
+Retrait d’argent du wallet
+—
+transfer_out
+Argent envoyé vers un autre wallet
+receiver_wallet_id (int)
+transfer_in
+Argent reçu depuis un autre wallet
+sender_wallet_id (int)
+
+
+STRUCTURE DES MODÈLES JSON
+Modèle User
+Champ
+Type
+Description
+Exemple
+id
+integer
+Identifiant unique
+1
+name
+string
+Nom complet
+"Youssef Amrani"
+email
+string
+Adresse email unique
+"youssef@example.com"
+created_at
+datetime
+Date de création (ISO 8601)
+"2026-03-10T09:00:00Z"
+updated_at
+datetime
+Date de mise à jour
+"2026-03-10T09:00:00Z"
+
+Modèle Wallet
+Champ
+Type
+Description
+Exemple
+id
+integer
+Identifiant unique
+1
+user_id
+integer
+ID du propriétaire
+1
+name
+string
+Nom du wallet
+"Wallet Principal"
+currency
+string
+Devise (MAD, EUR, USD)
+"MAD"
+balance
+string
+Solde formaté (2 décimales)
+"1500.00"
+created_at
+datetime
+Date de création
+"2026-03-10T09:15:00Z"
+updated_at
+datetime
+Date de mise à jour
+"2026-03-10T10:30:00Z"
+
+Modèle Transaction
+Champ
+Type
+Description
+Exemple
+id
+integer
+Identifiant unique
+1
+wallet_id
+integer
+Wallet concerné
+1
+type
+string
+Type de transaction
+"deposit"
+amount
+string
+Montant (2 décimales)
+"500.00"
+description
+string|null
+Description libre
+"Dépôt initial"
+receiver_wallet_id
+int|null
+Wallet destinataire
+3
+sender_wallet_id
+int|null
+Wallet expéditeur
+1
+balance_after
+string
+Solde après opération
+"2000.00"
+created_at
+datetime
+Date de la transaction
+"2026-03-10T11:00:00Z"
+
+
+💡 Conseil d’implémentation : Trait ApiResponse
+Pour standardiser toutes vos réponses, créez un Trait Laravel (app/Traits/ApiResponseTrait.php) avec deux méthodes : successResponse($data, $message, $code = 200) et errorResponse($message, $errors = null, $code = 400). Utilisez ce trait dans tous vos controllers pour garantir la cohérence avec le frontend.
+
+
+⚠️ Attention : balance en string
+Le champ "balance" et "amount" sont renvoyés en tant que STRING (ex: "1500.00") et non en float, pour éviter les problèmes d’arrondi liés aux nombres à virgule flottante en JavaScript. Le frontend convertira ces valeurs avec parseFloat() uniquement pour l’affichage.
+
+
